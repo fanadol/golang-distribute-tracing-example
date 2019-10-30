@@ -38,3 +38,15 @@ func (s *ServerHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 	return
 }
+
+func (s *ServerHandler) Get(w http.ResponseWriter, r *http.Request) {
+	posts, err := s.service.Get()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data, _ := json.Marshal(posts)
+	w.Write(data)
+	return
+}
