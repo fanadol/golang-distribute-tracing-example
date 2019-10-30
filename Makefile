@@ -2,5 +2,8 @@
 
 export GO111MODULE=on
 
-run:
-	go run main.go
+httpserver:
+	go run server/cmd/cli/main.go
+
+subscriber:
+	go run messaging/subscriber.go
