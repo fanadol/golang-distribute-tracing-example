@@ -1,8 +1,6 @@
 package server
 
 import (
-	"fmt"
-
 	"github.com/fanadol/golang-distribute-tracing-example/models"
 )
 
@@ -16,6 +14,9 @@ func NewDatabase() *Database {
 
 func (d *Database) Create(title, body string) error {
 	d.Post = append(d.Post, models.Post{Title: title, Body: body})
-	fmt.Printf("%+v", d.Post)
 	return nil
+}
+
+func (d *Database) Get() ([]models.Post, error) {
+	return d.Post, nil
 }
