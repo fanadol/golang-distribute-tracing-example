@@ -34,9 +34,8 @@ func (s *ServerHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, _ := json.Marshal(body)
-	w.Write(data)
-	return
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(body)
 }
 
 func (s *ServerHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +45,6 @@ func (s *ServerHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, _ := json.Marshal(posts)
-	w.Write(data)
-	return
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(posts)
 }
