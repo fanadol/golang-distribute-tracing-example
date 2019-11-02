@@ -8,13 +8,28 @@ import (
 	"time"
 
 	"github.com/fanadol/golang-distribute-tracing-example/models"
+	"github.com/fanadol/golang-distribute-tracing-example/tracing"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 )
 
 func main() {
-	span, _ := opentracing.StartSpanFromContext(context.Background(), "Get-Client")
+	tracer, closer := tracing.Init("Get-Client")
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
+
+	span := tracer.StartSpan("Get-Client-Root")
 	defer span.Finish()
+
+	ctx := opentracing.ContextWithSpan(context.Background(), span)
+
+	Get(ctx)
+}
+
+func Get(ctx context.Context) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Get-Request")
+	defer span.Finish()
+
 	var data []models.Post
 	client := &http.Client{Timeout: 10 * time.Second}
 	url := "http://localhost:8080/post"

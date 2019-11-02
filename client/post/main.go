@@ -9,16 +9,30 @@ import (
 	"net/http"
 
 	"github.com/fanadol/golang-distribute-tracing-example/models"
+	"github.com/fanadol/golang-distribute-tracing-example/tracing"
 	"github.com/nats-io/stan.go"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 )
 
 func main() {
-	span, _ := opentracing.StartSpanFromContext(context.Background(), "Post-Client")
+	tracer, closer := tracing.Init("Post-Client")
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
+
+	span := tracer.StartSpan("Post-Client-Root")
 	defer span.Finish()
-	// Create new post to server
-	client := &http.Client{}
+
+	ctx := opentracing.ContextWithSpan(context.Background(), span)
+
+	Post(ctx)
+	Publish(ctx)
+}
+
+func Post(ctx context.Context) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Post-Request")
+	defer span.Finish()
+
 	post := models.Post{
 		Title: "Cat and Dogs",
 		Body:  "Once upon a time in hohaw land",
@@ -33,37 +47,42 @@ func main() {
 
 	ext.SpanKindRPCClient.Set(span)
 	ext.HTTPUrl.Set(span, url)
-	ext.HTTPMethod.Set(span, "GET")
+	ext.HTTPMethod.Set(span, "POST")
 	span.Tracer().Inject(
 		span.Context(),
 		opentracing.HTTPHeaders,
 		opentracing.HTTPHeadersCarrier(request.Header),
 	)
 
-	_, err = client.Do(request)
+	_, err = http.DefaultClient.Do(request)
 	if err != nil {
 		panic("Error when trying to do request: " + err.Error())
 	}
 
 	fmt.Println("Success HTTP POST!")
+}
 
-	// Publish message
+func Publish(ctx context.Context) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Publish-Message")
+	defer span.Finish()
+
 	sc, err := stan.Connect("test-cluster", "client-clientID")
 	if err != nil {
 		panic("Error when connecting to stan: " + err.Error())
 	}
 
-	msg := "Hellow Sir"
+	var t tracing.TraceMsg
 
-	// Setup a span for the operation to publish a message.
-	ext.MessageBusDestination.Set(span, "foo")
+	msg := []byte("Hellow Sir")
 
 	// Inject span context into our traceMsg.
-	if err := span.Tracer().Inject(span.Context(), opentracing.Binary, &msg); err != nil {
+	if err := span.Tracer().Inject(span.Context(), opentracing.Binary, &t); err != nil {
 		log.Fatalf("%v for Inject.", err)
 	}
 
-	err = sc.Publish("foo", []byte(msg))
+	t.Write(msg)
+
+	err = sc.Publish("foo", t.Bytes())
 	if err != nil {
 		panic("Error when trying to publish: " + err.Error())
 	}
