@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/fanadol/golang-distribute-tracing-example/models"
+	"github.com/opentracing/opentracing-go"
 )
 
 type ServerHandler struct {
@@ -16,6 +17,8 @@ func NewServerHandler(service ServiceInterface) *ServerHandler {
 }
 
 func (s *ServerHandler) Create(w http.ResponseWriter, r *http.Request) {
+	span, ctx := opentracing.StartSpanFromContext(r.Context(), "Server-Create")
+	defer span.Finish()
 	body := models.Post{}
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
@@ -28,7 +31,7 @@ func (s *ServerHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.service.Create(body.Title, body.Body)
+	err = s.service.Create(ctx, body.Title, body.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -39,7 +42,10 @@ func (s *ServerHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ServerHandler) Get(w http.ResponseWriter, r *http.Request) {
-	posts, err := s.service.Get()
+	span, ctx := opentracing.StartSpanFromContext(r.Context(), "Server-Get")
+	defer span.Finish()
+
+	posts, err := s.service.Get(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

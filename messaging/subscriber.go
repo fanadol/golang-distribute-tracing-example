@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 
 	stan "github.com/nats-io/stan.go"
+	"github.com/opentracing/opentracing-go"
 )
 
 const (
@@ -22,6 +24,9 @@ func main() {
 	}
 
 	sub, err := sc.Subscribe("foo", func(m *stan.Msg) {
+		span, _ := opentracing.StartSpanFromContext(context.Background(), "Subscriber")
+		defer span.Finish()
+
 		fmt.Printf("Receive a message: %s\n", string(m.Data))
 	})
 
