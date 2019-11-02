@@ -1,6 +1,11 @@
 package server
 
-import "github.com/fanadol/golang-distribute-tracing-example/models"
+import (
+	"context"
+
+	"github.com/fanadol/golang-distribute-tracing-example/models"
+	"github.com/opentracing/opentracing-go"
+)
 
 type Server struct {
 	repo RepositoryInterface
@@ -10,10 +15,16 @@ func NewServerService(repo RepositoryInterface) *Server {
 	return &Server{repo}
 }
 
-func (s *Server) Create(title, body string) error {
-	return s.repo.Create(title, body)
+func (s *Server) Create(ctx context.Context, title, body string) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Server-Create-Service")
+	defer span.Finish()
+
+	return s.repo.Create(ctx, title, body)
 }
 
-func (s *Server) Get() ([]models.Post, error) {
-	return s.repo.Get()
+func (s *Server) Get(ctx context.Context) ([]models.Post, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Server-Get-Service")
+	defer span.Finish()
+
+	return s.repo.Get(ctx)
 }

@@ -2,15 +2,21 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/fanadol/golang-distribute-tracing-example/models"
 	"github.com/nats-io/stan.go"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 )
 
 func main() {
+	span, _ := opentracing.StartSpanFromContext(context.Background(), "Post-Client")
+	defer span.Finish()
 	// Create new post to server
 	client := &http.Client{}
 	post := models.Post{
@@ -25,6 +31,15 @@ func main() {
 		panic("Error when trying to create new request : " + err.Error())
 	}
 
+	ext.SpanKindRPCClient.Set(span)
+	ext.HTTPUrl.Set(span, url)
+	ext.HTTPMethod.Set(span, "GET")
+	span.Tracer().Inject(
+		span.Context(),
+		opentracing.HTTPHeaders,
+		opentracing.HTTPHeadersCarrier(request.Header),
+	)
+
 	_, err = client.Do(request)
 	if err != nil {
 		panic("Error when trying to do request: " + err.Error())
@@ -38,7 +53,17 @@ func main() {
 		panic("Error when connecting to stan: " + err.Error())
 	}
 
-	err = sc.Publish("foo", []byte("Hellow Sir"))
+	msg := "Hellow Sir"
+
+	// Setup a span for the operation to publish a message.
+	ext.MessageBusDestination.Set(span, "foo")
+
+	// Inject span context into our traceMsg.
+	if err := span.Tracer().Inject(span.Context(), opentracing.Binary, &msg); err != nil {
+		log.Fatalf("%v for Inject.", err)
+	}
+
+	err = sc.Publish("foo", []byte(msg))
 	if err != nil {
 		panic("Error when trying to publish: " + err.Error())
 	}

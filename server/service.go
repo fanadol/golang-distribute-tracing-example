@@ -1,9 +1,13 @@
 package server
 
-import "github.com/fanadol/golang-distribute-tracing-example/models"
+import (
+	"context"
+
+	"github.com/fanadol/golang-distribute-tracing-example/models"
+)
 
 // ServiceInterface represent service contract
 type ServiceInterface interface {
-	Create(title, body string) error
-	Get() ([]models.Post, error)
+	Create(ctx context.Context, title, body string) error
+	Get(ctx context.Context) ([]models.Post, error)
 }
