@@ -1,11 +1,13 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/fanadol/golang-distribute-tracing-example/models"
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 )
 
 type ServerHandler struct {
@@ -17,8 +19,12 @@ func NewServerHandler(service ServiceInterface) *ServerHandler {
 }
 
 func (s *ServerHandler) Create(w http.ResponseWriter, r *http.Request) {
-	span, ctx := opentracing.StartSpanFromContext(r.Context(), "Server-Create")
+	spanCtx, _ := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header))
+	span := opentracing.GlobalTracer().StartSpan("Server-Create", ext.RPCServerOption(spanCtx))
 	defer span.Finish()
+
+	ctx := opentracing.ContextWithSpan(context.Background(), span)
+
 	body := models.Post{}
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
@@ -42,8 +48,11 @@ func (s *ServerHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ServerHandler) Get(w http.ResponseWriter, r *http.Request) {
-	span, ctx := opentracing.StartSpanFromContext(r.Context(), "Server-Get")
+	spanCtx, _ := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header))
+	span := opentracing.GlobalTracer().StartSpan("Server-Get", ext.RPCServerOption(spanCtx))
 	defer span.Finish()
+
+	ctx := opentracing.ContextWithSpan(context.Background(), span)
 
 	posts, err := s.service.Get(ctx)
 	if err != nil {

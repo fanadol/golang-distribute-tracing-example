@@ -6,10 +6,15 @@ import (
 	"net/http"
 
 	"github.com/fanadol/golang-distribute-tracing-example/server"
+	"github.com/fanadol/golang-distribute-tracing-example/tracing"
 	"github.com/gorilla/mux"
+	"github.com/opentracing/opentracing-go"
 )
 
 func main() {
+	tracer, closer := tracing.Init("HTTP-Server")
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
 
 	serverRepo := server.NewDatabase()
 	serverService := server.NewServerService(serverRepo)
