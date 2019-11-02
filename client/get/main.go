@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/fanadol/golang-distribute-tracing-example/models"
 )
 
 func main() {
 	var data []models.Post
-	client := &http.Client{}
+	client := &http.Client{Timeout: 10 * time.Second}
 	url := "http://localhost:8080/post"
 
 	request, err := http.NewRequest("GET", url, nil)
@@ -24,5 +25,5 @@ func main() {
 	}
 
 	err = json.NewDecoder(response.Body).Decode(&data)
-	fmt.Println(data)
+	fmt.Println(fmt.Sprintf("%+v", data))
 }
