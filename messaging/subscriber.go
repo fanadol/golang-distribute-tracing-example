@@ -13,8 +13,8 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 )
 
-const (
-	URL       = stan.DefaultNatsURL
+var (
+	URL       = os.Getenv("URL")
 	clientID  = "client-id"
 	clusterID = "test-cluster"
 )
@@ -24,7 +24,7 @@ func main() {
 	defer closer.Close()
 	opentracing.SetGlobalTracer(tracer)
 
-	sc, err := stan.Connect(clusterID, clientID)
+	sc, err := stan.Connect(clusterID, clientID, stan.NatsURL(URL))
 	if err != nil {
 		panic("Error when connecting to stan: " + err.Error())
 	}
